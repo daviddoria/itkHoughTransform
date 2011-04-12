@@ -80,23 +80,11 @@ public:
   /** Get the threshold value */
   itkGetConstMacro(Threshold, float);
 
-  /** Set the resolution of Hough dimension 0 */
-  itkSetMacro(Dimension0Resolution, float);
+  /** Set the number of bins in each dimension of the accumulator array */
+  itkSetMacro(AccumulatorArrayDimensions, itk::FixedArray<unsigned int, VModelDimension>);
 
-  /** Get the resolution of Hough dimension 0 */
-  itkGetConstMacro(Dimension0Resolution, float);
-
-  /** Set the resolution of Hough dimension 1 */
-  itkSetMacro(Dimension1Resolution, float);
-
-  /** Get the resolution of Hough dimension 1 */
-  itkGetConstMacro(Dimension1Resolution, float);
-
-  /** Set the resolution of Hough dimension 2 */
-  itkSetMacro(Dimension2Resolution, float);
-
-  /** Get the resolution of Hough dimension 2 */
-  itkGetConstMacro(Dimension2Resolution, float);
+  /** Get the number of bins in each dimension of the accumulator array */
+  itkGetConstMacro(AccumulatorArrayDimensions, itk::FixedArray<unsigned int, VModelDimension>);
 
   /** Simplify the accumulator */
   void Simplify(void);
@@ -157,12 +145,19 @@ private:
   HoughTransform(const Self &);
   void operator=(const Self &);
 
-  float              m_AxesResolution[VModelDimension];
-  float              m_Dimension1Resolution;
-  float              m_Dimension2Resolution;
+  /** The array of the number of bins in each dimension of the Hough accumulator array */
+  itk::FixedArray<unsigned int, VModelDimension> m_AccumulatorArrayDimensions;
+
+  /** The threshold above which the filter should consider
+      the point as a valid point*/
   float              m_Threshold;
+
+  /** The simplified accumulator */
   OutputImagePointer m_SimplifyAccumulator;
+
+  /** The variance of the Gaussian kernel used to smooth the accumulator */
   float              m_Variance;
+
   unsigned long      m_OldModifiedTime;
 
 };

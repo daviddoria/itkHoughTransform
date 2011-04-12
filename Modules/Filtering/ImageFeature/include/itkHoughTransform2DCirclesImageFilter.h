@@ -22,7 +22,7 @@
 #pragma warning ( disable : 4786 )
 #endif
 
-#include "itkImageToImageFilter.h"
+#include "itkHoughTransform.h"
 #include "itkEllipseSpatialObject.h"
 
 namespace itk
@@ -50,7 +50,7 @@ namespace itk
 
 template< typename TInputPixelType, typename TOutputPixelType >
 class ITK_EXPORT HoughTransform2DCirclesImageFilter:
-  public ImageToImageFilter< Image< TInputPixelType, 2 >, Image< TOutputPixelType, 2 > >
+  public HoughTransform< Image< TInputPixelType, 2 >, Image< TOutputPixelType, 2 > >
 {
 public:
 
@@ -67,7 +67,7 @@ public:
   typedef typename OutputImageType::Pointer OutputImagePointer;
 
   /** Standard "Superclass" typedef. */
-  typedef ImageToImageFilter<
+  typedef HoughTransform<
     Image< TInputPixelType, 2 >,
     Image< TOutputPixelType, 2 > >  Superclass;
 

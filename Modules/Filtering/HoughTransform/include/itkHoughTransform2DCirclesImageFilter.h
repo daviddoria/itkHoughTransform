@@ -31,7 +31,6 @@ namespace itk
  * \class HoughTransform2DCirclesImageFilter
  * \brief Performs the Hough Transform to find circles in a 2D image.
  *
- * This filter derives from the base class ImageToImageFilter
  * The input is an image, and all pixels above some threshold are those
  * we want to consider during the process.
  *
@@ -48,9 +47,9 @@ namespace itk
  *
  * */
 
-template< typename TInputPixelType, typename TOutputPixelType >
+template< typename TInputImageType >
 class ITK_EXPORT HoughTransform2DCirclesImageFilter:
-  public HoughTransform< Image< TInputPixelType, 2 >, Image< TOutputPixelType, 2 > >
+  public HoughTransform< 2 >
 {
 public:
 
@@ -92,13 +91,10 @@ public:
   typedef typename CirclesListType::size_type CirclesListSizeType;
 
   /** Run-time type information (and related methods). */
-  itkTypeMacro(HoughTransform2DCirclesImageFilter, ImageToImageFilter);
+  itkTypeMacro(HoughTransform2DCirclesImageFilter, HoughTransform<>);
 
   /** Method for creation through the object factory. */
   itkNewMacro(Self);
-
-  /** Method for evaluating the implicit function over the image. */
-  void GenerateData();
 
   /** Set both Minimum and Maximum radius values */
   void SetRadius(double radius);
@@ -164,16 +160,6 @@ protected:
 
   void PrintSelf(std::ostream & os, Indent indent) const;
 
-  /** HoughTransform2DCirclesImageFilter needs the entire input. Therefore
-   * it must provide an implementation GenerateInputRequestedRegion().
-   * \sa ProcessObject::GenerateInputRequestedRegion(). */
-  void GenerateInputRequestedRegion();
-
-  /** HoughTransform2DCirclesImageFilter's produces all the output.
-   * Therefore, it must provide an implementation of
-   * EnlargeOutputRequestedRegion.
-   * \sa ProcessObject::EnlargeOutputRequestedRegion() */
-  void EnlargeOutputRequestedRegion( DataObject *itkNotUsed(output) );
 private:
 
   HoughTransform2DCirclesImageFilter(const Self &);

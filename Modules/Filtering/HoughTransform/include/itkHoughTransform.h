@@ -22,8 +22,7 @@
 #pragma warning ( disable : 4786 )
 #endif
 
-#include "itkImageToImageFilter.h"
-#include "itkLineSpatialObject.h"
+#include "itkImageSource.h"
 
 namespace itk
 {
@@ -32,26 +31,26 @@ namespace itk
  * \brief An abstract base class which sets up the structure for a Hough
  * Transform to detect a particular object.
  *
+ * This class provides the methods which produce the Hough accumulator array.
+ *
+ * Subclasses may either operate on an itk::Image or an itk::PointSet.
+ *
+ * The output of this class is the Hough accumulator array.
  * \ingroup ImageFeatureExtraction
  *
  * */
 
-template< typename TInputPixelType, typename TOutputPixelType, unsigned int VModelDimension >
+template<unsigned int VModelDimension >
 class ITK_EXPORT HoughTransform:
-  public ImageToImageFilter< Image< TInputPixelType, 2 >, Image< TOutputPixelType, 2 > >
+  public ImageSource< itk::Image< float, VModelDimension > >
 {
 public:
 
   /** Standard "Self" typedef. */
   typedef HoughTransform Self;
 
-  /** Input Image typedef */
-  typedef Image< TInputPixelType, 2 >           InputImageType;
-  typedef typename InputImageType::Pointer      InputImagePointer;
-  typedef typename InputImageType::ConstPointer InputImageConstPointer;
-
   /** Output Image typedef */
-  typedef Image< TOutputPixelType, 2 >      OutputImageType;
+  typedef Image< float, VModelDimension >      OutputImageType;
   typedef typename OutputImageType::Pointer OutputImagePointer;
 
   /** Smart pointer typedef support. */
@@ -59,16 +58,16 @@ public:
   typedef SmartPointer< const Self > ConstPointer;
 
   /** Standard "Superclass" typedef. */
-  typedef ImageToImageFilter< InputImageType, OutputImageType > Superclass;
+  typedef ImageSource< OutputImageType > Superclass;
 
   /** Image index typedef */
-  typedef typename InputImageType::IndexType IndexType;
+  typedef typename OutputImageType::IndexType IndexType;
 
   /** Image pixel value typedef */
-  typedef typename InputImageType::PixelType PixelType;
+  typedef typename OutputImageType::PixelType PixelType;
 
   /** Typedef to describe the output image region type. */
-  typedef typename InputImageType::RegionType OutputImageRegionType;
+  typedef typename OutputImageType::RegionType OutputImageRegionType;
 
   /** Method for evaluating the implicit function over the image. */
   void GenerateData();
@@ -100,12 +99,20 @@ public:
   itkSetMacro(Variance, float);
   itkGetConstMacro(Variance, float);
 
+  /** Blur the accumulator array. */
+  void BlurAccumulator();
+
+  /** All model paramters except one are held constant and an input point is given. The remaining model paramter is solved. */
+  virtual float SolveModel(itk::FixedArray<float, VModelDimension> parameters, unsigned int parameterToSolve) = 0;
+
   /** Object typedef */
   typedef SpatialObject< 2 >    	ObjectType;
   typedef typename ObjectType::Pointer 	ObjectPointer;
   typedef std::list< ObjectPointer >   	ObjectListType;
 
   typedef typename ObjectListType::size_type ObjectListSizeType;
+
+  virtual ObjectListType & GetObjects() = 0;
 
 #ifdef ITK_USE_CONCEPT_CHECKING
   /** Begin concept checking */
@@ -123,11 +130,6 @@ protected:
   virtual ~HoughTransform() {}
 
   void PrintSelf(std::ostream & os, Indent indent) const;
-
-  /** HoughTransform needs the entire input. Therefore
-   * it must provide an implementation GenerateInputRequestedRegion().
-   * \sa ProcessObject::GenerateInputRequestedRegion(). */
-  void GenerateInputRequestedRegion();
 
   /** HoughTransform's output is the accumulator
    * array.  The size of the output is a function of the size of the
@@ -148,6 +150,12 @@ private:
   /** The array of the number of bins in each dimension of the Hough accumulator array */
   itk::FixedArray<unsigned int, VModelDimension> m_AccumulatorArrayDimensions;
 
+  /** The array of the min/max pairs of each dimension of the Hough accumulator array */
+  itk::FixedArray<std::pair<float, float>, VModelDimension> m_AccumulatorArrayBounds;
+
+  /** A vector of all valid combinations of the paramters */
+  std::vector<itk::FixedArray<float, VModelDimension> > m_ParameterList;
+
   /** The threshold above which the filter should consider
       the point as a valid point*/
   float              m_Threshold;
@@ -157,8 +165,6 @@ private:
 
   /** The variance of the Gaussian kernel used to smooth the accumulator */
   float              m_Variance;
-
-  unsigned long      m_OldModifiedTime;
 
 };
 } // end namespace itk

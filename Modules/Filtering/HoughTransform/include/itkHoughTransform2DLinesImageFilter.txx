@@ -27,207 +27,23 @@
 namespace itk
 {
 /** Constructor */
-template< typename TInputPixelType, typename TOutputPixelType >
-HoughTransform2DLinesImageFilter< TInputPixelType, TOutputPixelType >
+template< typename TInputImageType >
+HoughTransform2DLinesImageFilter< TInputPixelType >
 ::HoughTransform2DLinesImageFilter()
 {
-  m_Threshold = 0; // by default
-  m_AngleResolution = 500;
-  m_NumberOfLines = 1;
-  m_DiscRadius = 10;
-  m_Variance = 5;
-  m_OldModifiedTime = 0;
-  m_OldNumberOfLines = 0;
-  m_SimplifyAccumulator = NULL;
+
 }
 
-template< typename TInputPixelType, typename TOutputPixelType >
-void
-HoughTransform2DLinesImageFilter< TInputPixelType, TOutputPixelType >
-::EnlargeOutputRequestedRegion(DataObject *output)
+/** All model paramters except one are held constant and an input point is given. The remaining model paramter is solved. */
+template< unsigned int VModelDimension >
+float
+HoughTransform< VModelDimension >
+::SolveModel(itk::FixedArray<float, VModelDimension> parameters, unsigned int parameterToSolve)
 {
-  // call the superclass' implementation of this method
-  Superclass::EnlargeOutputRequestedRegion(output);
+  // R = x*vcl_cos(Theta)+y*vcl_sin(Theta)
 
-  output->SetRequestedRegionToLargestPossibleRegion();
 }
 
-template< typename TInputPixelType, typename TOutputPixelType >
-void
-HoughTransform2DLinesImageFilter< TInputPixelType, TOutputPixelType >
-::GenerateOutputInformation()
-{
-  // call the superclass' implementation of this method
-  Superclass::GenerateOutputInformation();
-
-  // get pointers to the input and output
-  InputImageConstPointer input  = this->GetInput();
-  OutputImagePointer     output = this->GetOutput();
-
-  if ( !input || !output )
-    {
-    return;
-    }
-
-  // Compute the size of the output image
-  typename InputImageType::RegionType region;
-  Size< 2 > size;
-
-  size[0] =
-    (SizeValueType)( vcl_sqrt(m_AngleResolution * m_AngleResolution
-                                  + input->GetLargestPossibleRegion().GetSize()[0]
-                                  * input->GetLargestPossibleRegion().GetSize()[0]) );
-  size[1] = (SizeValueType)m_AngleResolution;
-  region.SetSize(size);
-  region.SetIndex( input->GetLargestPossibleRegion().GetIndex() );
-
-  output->SetLargestPossibleRegion(region);
-}
-
-template< typename TInputPixelType, typename TOutputPixelType >
-void
-HoughTransform2DLinesImageFilter< TInputPixelType, TOutputPixelType >
-::GenerateInputRequestedRegion()
-{
-  Superclass::GenerateInputRequestedRegion();
-  if ( this->GetInput() )
-    {
-    InputImagePointer image =
-      const_cast< InputImageType * >( this->GetInput() );
-    image->SetRequestedRegionToLargestPossibleRegion();
-    }
-}
-
-/** Generate the accumulator image */
-template< typename TInputPixelType, typename TOutputPixelType >
-void
-HoughTransform2DLinesImageFilter< TInputPixelType, TOutputPixelType >
-::GenerateData()
-{
-  itkDebugMacro(<< "HoughTransform2DLinesImageFilter called");
-
-  // Get the input and output pointers
-  InputImageConstPointer inputImage  = this->GetInput(0);
-  OutputImagePointer     outputImage = this->GetOutput(0);
-
-  // Allocate the output
-  this->AllocateOutputs();
-  outputImage->FillBuffer(0);
-
-  const double nPI = 4.0 * vcl_atan(1.0);
-
-  ImageRegionConstIteratorWithIndex< InputImageType > image_it( inputImage,  inputImage->GetRequestedRegion() );
-  image_it.Begin();
-
-  Index< 2 > index;
-
-  while ( !image_it.IsAtEnd() )
-    {
-    if ( image_it.Get() > m_Threshold )
-      {
-      for ( double angle = -nPI; angle < nPI; angle += nPI / m_AngleResolution )
-        {
-        index[0] =
-          // m_R
-          (IndexValueType)( image_it.GetIndex()[0] * vcl_cos(angle) + image_it.GetIndex()[1] * vcl_sin(angle) );
-        // m_Theta
-        index[1] = (IndexValueType)( ( m_AngleResolution / 2 ) + m_AngleResolution * angle / ( 2 * nPI ) );
-
-        if ( ( index[0] > 0 )
-             && ( index[0] <= (IndexValueType)outputImage->GetBufferedRegion().GetSize()[0] ) )
-        // the preceeding "if" should be replacable with "if (
-        // outputImage->GetBufferedRegion().IsInside(index) )" but
-        // the algorithm fails if it is
-          {
-          outputImage->SetPixel(index, outputImage->GetPixel(index) + 1);
-          }
-        }
-      }
-    ++image_it;
-    }
-}
-
-/** Simplify the accumulator
- * Do the same iteration process as the Update() method but find the maximum
- * along the curve and then remove the curve */
-template< typename TInputPixelType, typename TOutputPixelType >
-void
-HoughTransform2DLinesImageFilter< TInputPixelType, TOutputPixelType >
-::Simplify(void)
-{
-  // Get the input and output pointers
-  InputImageConstPointer inputImage = this->GetInput(0);
-  OutputImagePointer     outputImage = this->GetOutput(0);
-
-  if ( !inputImage || !outputImage )
-    {
-    itkExceptionMacro("Update() must be called before Simplify().");
-    }
-
-  /** Allocate the simplify accumulator */
-  m_SimplifyAccumulator = OutputImageType::New();
-  m_SimplifyAccumulator->SetRegions( outputImage->GetLargestPossibleRegion() );
-  m_SimplifyAccumulator->SetOrigin( inputImage->GetOrigin() );
-  m_SimplifyAccumulator->SetSpacing( inputImage->GetSpacing() );
-  m_SimplifyAccumulator->SetDirection( inputImage->GetDirection() );
-  m_SimplifyAccumulator->Allocate();
-  m_SimplifyAccumulator->FillBuffer(0);
-
-  Index< 2 > index;
-  Index< 2 > maxIndex;
-
-  typename OutputImageType::PixelType value;
-  typename OutputImageType::PixelType valuemax;
-
-  ImageRegionConstIteratorWithIndex< InputImageType > image_it( inputImage,  inputImage->GetRequestedRegion() );
-  image_it.GoToBegin();
-
-  const double nPI = 4.0 * vcl_atan(1.0);
-
-  while ( !image_it.IsAtEnd() )
-    {
-    if ( image_it.Get() > m_Threshold )
-      {
-      // Look for maximum along the curve and remove the curve at the same time
-      valuemax = -1;
-      maxIndex[0] = 0;
-      maxIndex[1] = 0;
-      for ( double angle = -nPI; angle < nPI; angle += nPI / m_AngleResolution )
-        {
-        // m_R
-        index[0] = (IndexValueType)( image_it.GetIndex()[0] * vcl_cos(angle) + image_it.GetIndex()[1] * vcl_sin(angle) );
-        // m_Theta
-        index[1] = (IndexValueType)( ( m_AngleResolution / 2 ) + m_AngleResolution * angle / ( 2 * nPI ) );
-
-        if ( outputImage->GetBufferedRegion().IsInside(index) )
-          {
-          value = outputImage->GetPixel(index);
-          if ( value > valuemax )
-            {
-            valuemax = value;
-            maxIndex = index;
-            }
-          }
-        }
-      m_SimplifyAccumulator->SetPixel(maxIndex, m_SimplifyAccumulator->GetPixel(maxIndex) + 1);
-      }
-    ++image_it;
-    }
-
-  ImageRegionConstIteratorWithIndex< OutputImageType > accusimple_it( m_SimplifyAccumulator,
-                                                                      m_SimplifyAccumulator->GetRequestedRegion() );
-  ImageRegionIteratorWithIndex< OutputImageType > accu_it( outputImage,  outputImage->GetRequestedRegion() );
-
-  accusimple_it.GoToBegin();
-  accu_it.GoToBegin();
-
-  while ( !accusimple_it.IsAtEnd() )
-    {
-    accu_it.Set( accusimple_it.Get() );
-    ++accu_it;
-    ++accusimple_it;
-    }
-}
 
 /** Get the list of lines. This recomputes the lines */
 template< typename TInputPixelType, typename TOutputPixelType >
@@ -277,8 +93,6 @@ HoughTransform2DLinesImageFilter< TInputPixelType, TOutputPixelType >
   itk::ImageRegionIterator< InternalImageType >
   it_input( postProcessImage, postProcessImage->GetLargestPossibleRegion() );
 
-  const double nPI = 4.0 * vcl_atan(1.0);
-
   itk::Index< 2 > index;
 
   unsigned int lines = 0;
@@ -300,16 +114,16 @@ HoughTransform2DLinesImageFilter< TInputPixelType, TOutputPixelType >
         LineType::PointListType list; // insert two points per line
 
         double radius = it_input.GetIndex()[0];
-        double teta   = ( ( it_input.GetIndex()[1] ) * 2 * nPI / this->GetAngleResolution() ) - nPI;
+        double teta   = ( ( it_input.GetIndex()[1] ) * 2 * itk::Math::pi / this->GetAngleResolution() ) - itk::Math::pi;
         double Vx = radius * vcl_cos(teta);
         double Vy = radius * vcl_sin(teta);
         double norm = vcl_sqrt(Vx * Vx + Vy * Vy);
         double VxNorm = Vx / norm;
         double VyNorm = Vy / norm;
 
-        if ( ( teta <= 0 ) || ( teta >= nPI / 2 ) )
+        if ( ( teta <= 0 ) || ( teta >= itk::Math::pi / 2 ) )
           {
-          if ( teta >= nPI / 2 )
+          if ( teta >= itk::Math::pi / 2 )
             {
             VyNorm = -VyNorm;
             VxNorm = -VxNorm;
@@ -339,7 +153,7 @@ HoughTransform2DLinesImageFilter< TInputPixelType, TOutputPixelType >
         m_LinesList.push_back(Line);
 
         // Remove a black disc from the hough space domain
-        for ( double angle = 0; angle <= 2 * nPI; angle += nPI / 1000 )
+        for ( double angle = 0; angle <= 2 * itk::Math::pi; angle += itk::Math::pi / 1000 )
           {
           for ( double length = 0; length < m_DiscRadius; length += 1 )
             {
@@ -376,12 +190,8 @@ HoughTransform2DLinesImageFilter< TInputPixelType, TOutputPixelType >
 {
   Superclass::PrintSelf(os, indent);
 
-  os << "Threshold: " << m_Threshold << std::endl;
-  os << "Angle Resolution: " << m_AngleResolution << std::endl;
-  os << "Number Of Lines: " << m_NumberOfLines << std::endl;
-  os << "Disc Radius: " << m_DiscRadius << std::endl;
-  os << "Accumulator blur variance: " << m_Variance << std::endl;
-  os << "Simplify Accumulator" << m_SimplifyAccumulator << std::endl;
+  //os << "Threshold: " << m_Threshold << std::endl;
+
 }
 } // end namespace
 

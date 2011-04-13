@@ -37,8 +37,8 @@ namespace itk
  * to be extracted. The output is the image of the accumulator.
  * GetLines() returns a list of LinesSpatialObjects
  *
- * Lines are parameterized in the form: R = x*vcl_cos(Teta)+y*vcl_sin(Teta)
- * where R is the perpendicular distance from the origin and Teta
+ * Lines are parameterized in the form: R = x*vcl_cos(Theta)+y*vcl_sin(Theta)
+ * where R is the perpendicular distance from the origin and Theta
  * the angle with the normal.
  *
  * The output is the accumulator array:
@@ -56,9 +56,9 @@ namespace itk
  *
  * */
 
-template< typename TInputPixelType, typename TOutputPixelType >
+template< typename TInputImageType>
 class ITK_EXPORT HoughTransform2DLinesImageFilter:
-  public HoughTransform< Image< TInputPixelType, 2 >, Image< TOutputPixelType, 2 >, 2> // Model has 2 parameters
+  public HoughTransform<2>
 {
 public:
 
@@ -70,24 +70,22 @@ public:
   typedef typename InputImageType::Pointer      InputImagePointer;
   typedef typename InputImageType::ConstPointer InputImageConstPointer;
 
-  /** Output Image typedef */
-  typedef Image< TOutputPixelType, 2 >      OutputImageType;
-  typedef typename OutputImageType::Pointer OutputImagePointer;
-
   /** Smart pointer typedef support. */
   typedef SmartPointer< Self >       Pointer;
   typedef SmartPointer< const Self > ConstPointer;
 
   /** Line typedef */
-  typedef LineSpatialObject< 2 >     LineType;
+  typedef LineSpatialObject< 2 >     ObjectType;
+  /*
   typedef typename LineType::Pointer LinePointer;
   typedef std::list< LinePointer >   LinesListType;
   typedef LineType::LinePointType    LinePointType;
+  */
 
   typedef typename LinesListType::size_type LinesListSizeType;
 
   /** Standard "Superclass" typedef. */
-  typedef ImageToImageFilter< InputImageType, OutputImageType > Superclass;
+  typedef HoughTransform<2> Superclass;
 
   /** Image index typedef */
   typedef typename InputImageType::IndexType IndexType;
@@ -107,43 +105,6 @@ public:
   /** Method for evaluating the implicit function over the image. */
   void GenerateData();
 
-  /** Set the threshold above which the filter should consider
-      the point as a valid point */
-  itkSetMacro(Threshold, float);
-
-  /** Get the threshold value */
-  itkGetConstMacro(Threshold, float);
-
-  /** Set the resolution angle:
-      The hough space descibes (in the angle direction) [-PI,PI[
-      with a constant stepe AngleResolution */
-  itkSetMacro(AngleResolution, float);
-
-  /** Get the resolution angle */
-  itkGetConstMacro(AngleResolution, float);
-
-  /** Simplify the accumulator */
-  void Simplify(void);
-
-  /** Get the Simplified accumulator */
-  itkGetObjectMacro(SimplifyAccumulator, OutputImageType);
-
-  /** Get the list of lines. This recomputes the lines */
-  LinesListType & GetLines(unsigned int n = 0);
-
-  /** Set/Get the number of lines to extract */
-  itkSetMacro(NumberOfLines, unsigned int);
-  itkGetConstMacro(NumberOfLines, unsigned int);
-
-  /** Set/Get the radius of the disc to remove from the accumulator
-   *  for each line found */
-  itkSetMacro(DiscRadius, float);
-  itkGetConstMacro(DiscRadius, float);
-
-  /** Set the variance of the gaussian bluring for the accumulator */
-  itkSetMacro(Variance, float);
-  itkGetConstMacro(Variance, float);
-
 #ifdef ITK_USE_CONCEPT_CHECKING
   /** Begin concept checking */
   itkConceptMacro( IntConvertibleToOutputCheck,
@@ -154,6 +115,7 @@ public:
                    ( Concept::AdditiveOperators< TOutputPixelType, int > ) );
   /** End concept checking */
 #endif
+
 protected:
 
   HoughTransform2DLinesImageFilter();
@@ -161,36 +123,11 @@ protected:
 
   void PrintSelf(std::ostream & os, Indent indent) const;
 
-  /** HoughTransform2DLinesImageFilter needs the entire input. Therefore
-   * it must provide an implementation GenerateInputRequestedRegion().
-   * \sa ProcessObject::GenerateInputRequestedRegion(). */
-  void GenerateInputRequestedRegion();
-
-  /** HoughTransform2DLinesImageFilter's output is the accumulator
-   * array.  The size of the output is a function of the size of the
-   * input and the AngleAxisSize. Since this output is a different
-   * size than the input, it must provide an implementation of
-   * GenerateOutputInformation.
-   * \sa ProcessObject::GenerateOutputRequestedRegion() */
-  void GenerateOutputInformation();
-
-  /** HoughTransform2DLinesImageFilter must produce the entire output */
-  void EnlargeOutputRequestedRegion(DataObject *output);
-
 private:
 
   HoughTransform2DLinesImageFilter(const Self &);
   void operator=(const Self &);
 
-  float              m_AngleResolution;
-  float              m_Threshold;
-  OutputImagePointer m_SimplifyAccumulator;
-  LinesListType      m_LinesList;
-  LinesListSizeType  m_NumberOfLines;
-  float              m_DiscRadius;
-  float              m_Variance;
-  unsigned long      m_OldModifiedTime;
-  LinesListSizeType  m_OldNumberOfLines;
 };
 } // end namespace itk
 

@@ -38,11 +38,15 @@ namespace itk
  * The output of this class is the Hough accumulator array.
  * \ingroup ImageFeatureExtraction
  *
+ * TODO \todo add concepth checking by making sure TModelParameter is either
+ * float, either double
  * */
 
-template<unsigned int VModelDimension >
+template< typename TModelParameter,
+          unsigned int VModelDimension,
+          class TSpatialObject >
 class ITK_EXPORT HoughTransform:
-  public ImageSource< itk::Image< float, VModelDimension > >
+  public ImageSource< Image< TModelParameter, VModelDimension > >
 {
 public:
 
@@ -50,7 +54,7 @@ public:
   typedef HoughTransform Self;
 
   /** Output Image typedef */
-  typedef Image< float, VModelDimension >      OutputImageType;
+  typedef Image< TModelParameter, VModelDimension >      OutputImageType;
   typedef typename OutputImageType::Pointer OutputImagePointer;
 
   /** Smart pointer typedef support. */
@@ -69,21 +73,25 @@ public:
   /** Typedef to describe the output image region type. */
   typedef typename OutputImageType::RegionType OutputImageRegionType;
 
+  typedef TModelParameter ModelParameterType;
+  typedef FixedArray< unsigned int, VModelDimension > DimensionArrayType;
+
   /** Method for evaluating the implicit function over the image. */
   void GenerateData();
 
   /** Set the threshold above which the filter should consider
       the point as a valid point */
-  itkSetMacro(Threshold, float);
+  itkSetMacro(Threshold, ModelParameterType );
 
   /** Get the threshold value */
-  itkGetConstMacro(Threshold, float);
+  itkGetConstMacro(Threshold, ModelParameterType);
 
   /** Set the number of bins in each dimension of the accumulator array */
-  itkSetMacro(AccumulatorArrayDimensions, itk::FixedArray<unsigned int, VModelDimension>);
+  itkSetMacro(AccumulatorArrayDimensions,
+              DimensionArrayType );
 
   /** Get the number of bins in each dimension of the accumulator array */
-  itkGetConstMacro(AccumulatorArrayDimensions, itk::FixedArray<unsigned int, VModelDimension>);
+  itkGetConstMacro(AccumulatorArrayDimensions, DimensionArrayType );
 
   /** Simplify the accumulator */
   void Simplify(void);
@@ -92,23 +100,26 @@ public:
   itkGetObjectMacro(SimplifyAccumulator, OutputImageType);
 
   /** Set/Get the number of objects to extract */
-  itkSetMacro(NumberOfObjects, unsigned int);
-  itkGetConstMacro(NumberOfObjects, unsigned int);
+  itkSetMacro(NumberOfObjects, IdentifierType );
+  itkGetConstMacro(NumberOfObjects, IdentifierType );
 
   /** Set the variance of the gaussian bluring for the accumulator */
-  itkSetMacro(Variance, float);
-  itkGetConstMacro(Variance, float);
+  itkSetMacro(Variance, ModelParameterType);
+  itkGetConstMacro(Variance, ModelParameterType);
 
   /** Blur the accumulator array. */
   void BlurAccumulator();
 
+  typedef FixedArray< ModelParameterType, VModelDimension > ParameterArrayType;
   /** All model paramters except one are held constant and an input point is given. The remaining model paramter is solved. */
-  virtual float SolveModel(itk::FixedArray<float, VModelDimension> parameters, unsigned int parameterToSolve) = 0;
+  virtual ModelParameterType SolveModel(
+    const ParameterArrayType& parameters,
+    const unsigned int& parameterToSolve) = 0;
 
   /** Object typedef */
-  typedef SpatialObject< 2 >    	ObjectType;
-  typedef typename ObjectType::Pointer 	ObjectPointer;
-  typedef std::list< ObjectPointer >   	ObjectListType;
+  typedef TSpatialObject                    ObjectType;
+  typedef typename ObjectType::Pointer 	    ObjectPointer;
+  typedef std::list< ObjectPointer >   	    ObjectListType;
 
   typedef typename ObjectListType::size_type ObjectListSizeType;
 

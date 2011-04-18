@@ -21,6 +21,8 @@
 
 #include "itkRGBPixel.h"
 
+#include <cstddef>
+
 namespace itk
 {
 template< typename InputPixelType,

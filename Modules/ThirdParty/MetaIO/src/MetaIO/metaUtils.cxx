@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <string>
+#include <cstddef>
 
 #if defined (__BORLANDC__) && (__BORLANDC__ >= 0x0580)
 #include <mem.h>

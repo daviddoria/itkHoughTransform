@@ -45,7 +45,10 @@ namespace itk
  *
  * \ingroup ImageFeatureExtraction
  *
- * */
+ *
+ * \ingroup ITK-ImageFeature
+ * \wikiexample{Conversions/HoughTransform2DCirclesImageFilter,HoughTransform2DCirclesImageFilter}
+ */
 
 template< typename TInputImageType >
 class ITK_EXPORT HoughTransform2DCirclesImageFilter:

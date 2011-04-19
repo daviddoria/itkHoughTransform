@@ -40,12 +40,15 @@ namespace itk
  *
  * */
 
-template<typename TPoint, unsigned int VInputDimension, typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
+template<typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
 class ITK_EXPORT HoughTransform:
   public ImageSource< itk::Image< unsigned int, VModelDimension > > // The accumulator array simply counts how many points land in a bin
 {
 public:
 
+  typedef TSpatialObject::TDimension VInputDimension; 
+  typedef TSpatialObject::ScalarType TPoint;
+  
   /** Standard "Self" typedef. */
   typedef HoughTransform Self;
 

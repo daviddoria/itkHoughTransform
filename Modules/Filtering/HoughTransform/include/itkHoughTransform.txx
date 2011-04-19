@@ -23,17 +23,17 @@
 namespace itk
 {
 /** Constructor */
-template<typename TPoint, unsigned int VInputDimension, typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
-HoughTransform<TPoint, VInputDimension, TModelParameter, VModelDimension, TSpatialObject >
+template<typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
+HoughTransform<TModelParameter, VModelDimension, TSpatialObject >
 ::HoughTransform()
 {
   m_NumberOfObjectsToFind = 1;
   m_Variance = 5;
 }
 
-template<typename TPoint, unsigned int VInputDimension, typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
+template<typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
 void
-HoughTransform<TPoint, VInputDimension, TModelParameter, VModelDimension, TSpatialObject >
+HoughTransform<TModelParameter, VModelDimension, TSpatialObject >
 ::EnlargeOutputRequestedRegion(DataObject *output)
 {
   // call the superclass' implementation of this method
@@ -42,9 +42,9 @@ HoughTransform<TPoint, VInputDimension, TModelParameter, VModelDimension, TSpati
   output->SetRequestedRegionToLargestPossibleRegion();
 }
 
-template<typename TPoint, unsigned int VInputDimension, typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
+template<typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
 void
-HoughTransform<TPoint, VInputDimension, TModelParameter, VModelDimension, TSpatialObject >
+HoughTransform<TModelParameter, VModelDimension, TSpatialObject >
 ::GenerateOutputInformation()
 {
   // call the superclass' implementation of this method
@@ -74,9 +74,9 @@ HoughTransform<TPoint, VInputDimension, TModelParameter, VModelDimension, TSpati
 
 
 /** Blur the accumulator image */
-template<typename TPoint, unsigned int VInputDimension, typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
+template<typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
 void
-HoughTransform<TPoint, VInputDimension, TModelParameter, VModelDimension, TSpatialObject >
+HoughTransform<TModelParameter, VModelDimension, TSpatialObject >
 ::BlurAccumulator()
 {
   typedef Image< float, VModelDimension > InternalImageType;
@@ -115,9 +115,9 @@ HoughTransform<TPoint, VInputDimension, TModelParameter, VModelDimension, TSpati
 }
 
 /** Generate and blur the accumulator image. */
-template<typename TPoint, unsigned int VInputDimension, typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
+template<typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
 void
-HoughTransform<TPoint, VInputDimension, TModelParameter, VModelDimension, TSpatialObject >
+HoughTransform<TModelParameter, VModelDimension, TSpatialObject >
 ::GenerateData()
 {
   // Get the output pointer
@@ -147,9 +147,9 @@ HoughTransform<TPoint, VInputDimension, TModelParameter, VModelDimension, TSpati
 }
 
 /** Get the list of NumberOfObjects objects from the accumulator array. */
-template<typename TPoint, unsigned int VInputDimension, typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
-typename HoughTransform< VModelDimension>::ObjectListType &
-HoughTransform<TPoint, VInputDimension, TModelParameter, VModelDimension, TSpatialObject >
+template<typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
+typename HoughTransform<TModelParameter, VModelDimension, TSpatialObject >::ObjectListType &
+HoughTransform<TModelParameter, VModelDimension, TSpatialObject >
 ::GetObjects(unsigned int n)
 {
   ObjectListType objects;
@@ -180,9 +180,9 @@ HoughTransform<TPoint, VInputDimension, TModelParameter, VModelDimension, TSpati
   return objects;
 }
 
-template<typename TPoint, unsigned int VInputDimension, typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
+template<typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
 void
-HoughTransform<TPoint, VInputDimension, TModelParameter, VModelDimension, TSpatialObject >
+HoughTransform<TModelParameter, VModelDimension, TSpatialObject >
 ::ClearRegion(itk::Index<VModelDimension> index)
 {
   // Zero a sphere around the specified index
@@ -199,9 +199,9 @@ HoughTransform<TPoint, VInputDimension, TModelParameter, VModelDimension, TSpati
 }
 
 /** Print Self information */
-template<typename TPoint, unsigned int VInputDimension, typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
+template<typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
 void
-HoughTransform<TPoint, VInputDimension, TModelParameter, VModelDimension, TSpatialObject >
+HoughTransform<TModelParameter, VModelDimension, TSpatialObject >
 ::PrintSelf(std::ostream & os, Indent indent) const
 {
   Superclass::PrintSelf(os, indent);

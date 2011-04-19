@@ -23,17 +23,17 @@
 namespace itk
 {
 /** Constructor */
-template<unsigned int VModelDimension >
-HoughTransform<VModelDimension >
+template<typename TPoint, unsigned int VInputDimension, typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
+HoughTransform<TPoint, VInputDimension, TModelParameter, VModelDimension, TSpatialObject >
 ::HoughTransform()
 {
-  m_NumberOfObjects = 1;
+  m_NumberOfObjectsToFind = 1;
   m_Variance = 5;
 }
 
-template< unsigned int VModelDimension >
+template<typename TPoint, unsigned int VInputDimension, typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
 void
-HoughTransform< VModelDimension  >
+HoughTransform<TPoint, VInputDimension, TModelParameter, VModelDimension, TSpatialObject >
 ::EnlargeOutputRequestedRegion(DataObject *output)
 {
   // call the superclass' implementation of this method
@@ -42,9 +42,9 @@ HoughTransform< VModelDimension  >
   output->SetRequestedRegionToLargestPossibleRegion();
 }
 
-template< unsigned int VModelDimension >
+template<typename TPoint, unsigned int VInputDimension, typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
 void
-HoughTransform< TInputPixelType, TOutputPixelType >
+HoughTransform<TPoint, VInputDimension, TModelParameter, VModelDimension, TSpatialObject >
 ::GenerateOutputInformation()
 {
   // call the superclass' implementation of this method
@@ -74,9 +74,9 @@ HoughTransform< TInputPixelType, TOutputPixelType >
 
 
 /** Blur the accumulator image */
-template< unsigned int VModelDimension >
+template<typename TPoint, unsigned int VInputDimension, typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
 void
-HoughTransform< TInputPixelType, TOutputPixelType >
+HoughTransform<TPoint, VInputDimension, TModelParameter, VModelDimension, TSpatialObject >
 ::BlurAccumulator()
 {
   typedef Image< float, VModelDimension > InternalImageType;
@@ -115,9 +115,9 @@ HoughTransform< TInputPixelType, TOutputPixelType >
 }
 
 /** Generate and blur the accumulator image. */
-template< unsigned int VModelDimension >
+template<typename TPoint, unsigned int VInputDimension, typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
 void
-HoughTransform< VModelDimension >
+HoughTransform<TPoint, VInputDimension, TModelParameter, VModelDimension, TSpatialObject >
 ::GenerateData()
 {
   // Get the output pointer
@@ -147,9 +147,9 @@ HoughTransform< VModelDimension >
 }
 
 /** Get the list of NumberOfObjects objects from the accumulator array. */
-template< unsigned int VModelDimension >
+template<typename TPoint, unsigned int VInputDimension, typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
 typename HoughTransform< VModelDimension>::ObjectListType &
-HoughTransform< VModelDimension >
+HoughTransform<TPoint, VInputDimension, TModelParameter, VModelDimension, TSpatialObject >
 ::GetObjects(unsigned int n)
 {
   ObjectListType objects;
@@ -180,34 +180,28 @@ HoughTransform< VModelDimension >
   return objects;
 }
 
-template< unsigned int VModelDimension >
+template<typename TPoint, unsigned int VInputDimension, typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
 void
-HoughTransform< VModelDimension >
+HoughTransform<TPoint, VInputDimension, TModelParameter, VModelDimension, TSpatialObject >
 ::ClearRegion(itk::Index<VModelDimension> index)
 {
   // Zero a sphere around the specified index
   
-  // Is there not a better way to do this??
-  /*
-  for ( double angle = 0; angle <= 2 * itk::Math::pi; angle += itk::Math::pi / 1000 )
-    {
-    for ( double length = 0; length < m_DiscRadius; length += 1 )
-      {
-      index[0] = (IndexValueType)( it_input.GetIndex()[0] + length * vcl_cos(angle) );
-      index[1] = (IndexValueType)( it_input.GetIndex()[1] + length * vcl_sin(angle) );
-      if ( postProcessImage->GetBufferedRegion().IsInside(index) )
-	{
-	postProcessImage->SetPixel(index, 0);
-	}
-      }
-    }
-  */
+  typedef itk::BinaryBallStructuringElement<2> StructuringElementType;
+  StructuringElementType::RadiusType elementRadius;
+  elementRadius.Fill(m_Variance);
+  StructuringElementType structuringElement =
+    StructuringElementType::Box(elementRadius);
+
+  typedef itk::ShapedNeighborhoodIterator<ImageType> IteratorType;
+  IteratorType iterator(radius, image, image->GetLargestPossibleRegion());
+  iterator.SetNeighborhood(structuringElement);
 }
 
 /** Print Self information */
-template< unsigned int VModelDimension >
+template<typename TPoint, unsigned int VInputDimension, typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
 void
-HoughTransform< VModelDimension >
+HoughTransform<TPoint, VInputDimension, TModelParameter, VModelDimension, TSpatialObject >
 ::PrintSelf(std::ostream & os, Indent indent) const
 {
   Superclass::PrintSelf(os, indent);

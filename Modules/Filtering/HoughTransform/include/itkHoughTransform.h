@@ -40,9 +40,9 @@ namespace itk
  *
  * */
 
-template<typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
+template<typename TPoint, unsigned int VInputDimension, typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
 class ITK_EXPORT HoughTransform:
-  public ImageSource< itk::Image< float, VModelDimension > >
+  public ImageSource< itk::Image< unsigned int, VModelDimension > > // The accumulator array simply counts how many points land in a bin
 {
 public:
 
@@ -70,6 +70,9 @@ public:
   /** Typedef to describe the output image region type. */
   typedef typename OutputImageType::RegionType OutputImageRegionType;
 
+  /** The type of the input points. */
+  typedef typename itk::PointSet<TPoint, VInputDimension> PointSetType;
+  
   /** Method for performing the Hough transform procedure. */
   void GenerateData();
 
@@ -88,7 +91,7 @@ public:
   itkGetConstMacro(Variance, float);
   
   /** Set the points in which to find objects. */
-  itkSetMacro(Points, itk::PointSet<>);
+  itkSetMacro(PointSet, PointSetType);
 
   /** Blur the accumulator array. */
   void BlurAccumulator();
@@ -148,7 +151,7 @@ private:
   unsigned int       m_NumberOfObjectsToFind;
 
   /** The input points in which to find objects. */
-  itk::PointSet<>      m_Points;
+  PointSetType    m_PointSet;
   
 };
 } // end namespace itk

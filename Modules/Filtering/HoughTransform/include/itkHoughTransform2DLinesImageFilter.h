@@ -44,9 +44,9 @@ namespace itk
  * the angle with the normal.
  *
  * The output is the accumulator array:
- *    -Dimension 0 represents the distance R from the corner
+ *    -Dimension 0 is R - represents the distance R from the corner
  *     to the line
- *    -Dimension 1 represents the angle between the X axis
+ *    -Dimension 1 is Theta - represents the angle between the X axis
  *     and the normal to the line.
  *
  * \ingroup ImageFeatureExtraction
@@ -57,29 +57,25 @@ namespace itk
  * \wikiexample{Conversions/HoughTransform2DLinesImageFilter,HoughTransform2DLinesImageFilter}
  */
 
+template<typename TModelParameter>
 class ITK_EXPORT HoughTransform2DLinesImageFilter:
-  public HoughTransform<float, 2, LineSpatialObject>
+  public HoughTransform<float, 2, TModelParameter, 2, LineSpatialObject>
 {
 public:
 
   /** Standard "Self" typedef. */
   typedef HoughTransform2DLinesImageFilter Self;
 
-  /** Input Image typedef */
-  typedef Image< TInputPixelType, 2 >           InputImageType;
-  typedef typename InputImageType::Pointer      InputImagePointer;
-  typedef typename InputImageType::ConstPointer InputImageConstPointer;
-
   /** Smart pointer typedef support. */
   typedef SmartPointer< Self >       Pointer;
   typedef SmartPointer< const Self > ConstPointer;
 
   /** Line typedef */
-  typedef LineSpatialObject< 2 >     ObjectType;
+  typedef LineSpatialObject< 2 >     LineType;
   typedef typename LineType::Pointer LinePointer;
 
   /** Standard "Superclass" typedef. */
-  typedef HoughTransform<2> Superclass;
+  typedef HoughTransform<float, 2, TModelParameter, 2, LineSpatialObject> Superclass;
 
   /** Run-time type information (and related methods). */
   itkTypeMacro(HoughTransform2DLinesImageFilter, HoughTransform);

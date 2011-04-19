@@ -27,12 +27,8 @@ template<unsigned int VModelDimension >
 HoughTransform<VModelDimension >
 ::HoughTransform()
 {
-  m_Threshold = 0; // by default
-  m_AngleResolution = 500;
-  m_NumberOfLines = 1;
-  m_DiscRadius = 10;
+  m_NumberOfObjects = 1;
   m_Variance = 5;
-  m_SimplifyAccumulator = NULL;
 }
 
 template< unsigned int VModelDimension >
@@ -54,8 +50,6 @@ HoughTransform< TInputPixelType, TOutputPixelType >
   // call the superclass' implementation of this method
   Superclass::GenerateOutputInformation();
 
-  // get pointers to the input and output
-  InputImageConstPointer input  = this->GetInput();
   OutputImagePointer     output = this->GetOutput();
 
   if ( !input || !output )
@@ -117,269 +111,97 @@ HoughTransform< TInputPixelType, TOutputPixelType >
   variance[1] = m_Variance;
   gaussianFilter->SetVariance(variance);
   gaussianFilter->Update();
-  typename InternalImageType::Pointer postProcessImage = gaussianFilter->GetOutput();
-
-  typedef MinimumMaximumImageCalculator< InternalImageType > MinMaxCalculatorType;
-  typename MinMaxCalculatorType::Pointer minMaxCalculator = MinMaxCalculatorType::New();
-  ImageRegionIterator< InternalImageType > it_input( postProcessImage, postProcessImage->GetLargestPossibleRegion() );
 
 }
 
-
-/** Generate the accumulator image */
+/** Generate and blur the accumulator image. */
 template< unsigned int VModelDimension >
 void
 HoughTransform< VModelDimension >
 ::GenerateData()
 {
-  itkDebugMacro(<< "HoughTransform called");
-
   // Get the output pointer
   OutputImagePointer     outputImage = this->GetOutput(0);
 
   // Allocate the output
-  this->AllocateOutputs();
   outputImage->FillBuffer(0);
 
-  while ( !image_it.IsAtEnd() )
+  // For every point, solve all of the equations corresponding to every voxel in the accumulator array
+  itk::ImageRegionIterator<ImageType> iterator(outputImage, outputImage->GetLargestPossibleRegion());
+  
+  for(unsigned int pointId = 0; pointId < numberOfPoints; ++pointId)
     {
-    if ( image_it.Get() > m_Threshold )
+    while ( !iterator.IsAtEnd() )
       {
-      for (unsigned int paramterCombinationId = 0; paramterCombinationId < m_ParameterList.size(); ++paramterCombinationId)
-        {
+      itk::Index<VModelDimension> accumulatorIndex = iterator.GetIndex();
+    
+      // The real work is dispatched to a subclass
+      SolveModel(accumulatorIndex);
 
-          itk::Index<VModelDimension> accumulatorIndex = GetBin(m_ParameterList[paramterCombinationId]);
-
-          // if the accumulator array index is inside the range of indices to accumulate
-          if ( ( index[dimension] > 0 )
-              && ( index[dimension] <= (IndexValueType)outputImage->GetBufferedRegion().GetSize()[dimension] ) )
-          // the preceeding "if" should be replacable with "if (
-          // outputImage->GetBufferedRegion().IsInside(index) )" but
-          // the algorithm fails if it is
-            {
-            outputImage->SetPixel(index, outputImage->GetPixel(index) + 1);
-            }
-          }
-      }
-    ++image_it;
-    }
+      outputImage->SetPixel(index, outputImage->GetPixel(index) + 1);
+      ++iterator;
+      } // end while over accumulator array
+    } // end for over points
+    
+  BlurAccumulator();
 }
 
-/** Simplify the accumulator
- * Do the same iteration process as the Update() method but find the maximum
- * along the curve and then remove the curve */
-template< unsigned int VModelDimension >
-void
-HoughTransform2DLinesImageFilter< TInputPixelType, TOutputPixelType >
-::Simplify(void)
-{
-  // Get the input and output pointers
-  InputImageConstPointer inputImage = this->GetInput(0);
-  OutputImagePointer     outputImage = this->GetOutput(0);
-
-  if ( !inputImage || !outputImage )
-    {
-    itkExceptionMacro("Update() must be called before Simplify().");
-    }
-
-  /** Allocate the simplify accumulator */
-  m_SimplifyAccumulator = OutputImageType::New();
-  m_SimplifyAccumulator->SetRegions( outputImage->GetLargestPossibleRegion() );
-  m_SimplifyAccumulator->SetOrigin( inputImage->GetOrigin() );
-  m_SimplifyAccumulator->SetSpacing( inputImage->GetSpacing() );
-  m_SimplifyAccumulator->SetDirection( inputImage->GetDirection() );
-  m_SimplifyAccumulator->Allocate();
-  m_SimplifyAccumulator->FillBuffer(0);
-
-  Index< 2 > index;
-  Index< 2 > maxIndex;
-
-  typename OutputImageType::PixelType value;
-  typename OutputImageType::PixelType valuemax;
-
-  ImageRegionConstIteratorWithIndex< InputImageType > image_it( inputImage,  inputImage->GetRequestedRegion() );
-  image_it.GoToBegin();
-
-  while ( !image_it.IsAtEnd() )
-    {
-    if ( image_it.Get() > m_Threshold )
-      {
-      // Look for maximum along the curve and remove the curve at the same time
-      valuemax = -1;
-      maxIndex[0] = 0;
-      maxIndex[1] = 0;
-      for ( double angle = -itk::Math::pi; angle < itk::Math::pi; angle += itk::Math::pi / m_AngleResolution )
-        {
-        // m_R
-        index[0] = (IndexValueType)( image_it.GetIndex()[0] * vcl_cos(angle) + image_it.GetIndex()[1] * vcl_sin(angle) );
-        // m_Theta
-        index[1] = (IndexValueType)( ( m_AngleResolution / 2 ) + m_AngleResolution * angle / ( 2 * itk::Math::pi ) );
-
-        if ( outputImage->GetBufferedRegion().IsInside(index) )
-          {
-          value = outputImage->GetPixel(index);
-          if ( value > valuemax )
-            {
-            valuemax = value;
-            maxIndex = index;
-            }
-          }
-        }
-      m_SimplifyAccumulator->SetPixel(maxIndex, m_SimplifyAccumulator->GetPixel(maxIndex) + 1);
-      }
-    ++image_it;
-    }
-
-  ImageRegionConstIteratorWithIndex< OutputImageType > accusimple_it( m_SimplifyAccumulator,
-                                                                      m_SimplifyAccumulator->GetRequestedRegion() );
-  ImageRegionIteratorWithIndex< OutputImageType > accu_it( outputImage,  outputImage->GetRequestedRegion() );
-
-  accusimple_it.GoToBegin();
-  accu_it.GoToBegin();
-
-  while ( !accusimple_it.IsAtEnd() )
-    {
-    accu_it.Set( accusimple_it.Get() );
-    ++accu_it;
-    ++accusimple_it;
-    }
-}
-
-/** Get the list of objects. This recomputes the objects */
+/** Get the list of NumberOfObjects objects from the accumulator array. */
 template< unsigned int VModelDimension >
 typename HoughTransform< VModelDimension>::ObjectListType &
 HoughTransform< VModelDimension >
 ::GetObjects(unsigned int n)
 {
-  // if the filter has not been updated
-  if ( ( this->GetMTime() == m_OldModifiedTime ) && ( n == m_OldNumberOfLines ) )
-    {
-    return m_LinesList;
-    }
-
-  m_LinesList.clear();
-
-  /** Blur the accumulator in order to find the maximum */
-  typedef float                              InternalImagePixelType;
-  typedef Image< InternalImagePixelType, 2 > InternalImageType;
-
-  OutputImagePointer outputImage = this->GetOutput(0);
-
-  if ( !outputImage )
-    {
-    itkExceptionMacro("Update() must be called before GetLines().");
-    }
-
-  /** xxxConvert the accumulator output image type to internal image type */
-  typedef CastImageFilter< OutputImageType, InternalImageType > CastImageFilterType;
-
-  typename CastImageFilterType::Pointer castImageFilter = CastImageFilterType::New();
-  castImageFilter->SetInput(outputImage);
-
-  typedef DiscreteGaussianImageFilter< InternalImageType, InternalImageType > GaussianFilterType;
-  typename GaussianFilterType::Pointer gaussianFilter = GaussianFilterType::New();
-
-  // the output is the accumulator image
-  gaussianFilter->SetInput( castImageFilter->GetOutput() );
-  double variance[2];
-  variance[0] = m_Variance;
-  variance[1] = m_Variance;
-  gaussianFilter->SetVariance(variance);
-  gaussianFilter->Update();
-  InternalImageType::Pointer postProcessImage = gaussianFilter->GetOutput();
+  ObjectListType objects;
 
   typedef MinimumMaximumImageCalculator< InternalImageType > MinMaxCalculatorType;
   typename MinMaxCalculatorType::Pointer minMaxCalculator = MinMaxCalculatorType::New();
-  itk::ImageRegionIterator< InternalImageType >
-  it_input( postProcessImage, postProcessImage->GetLargestPossibleRegion() );
-
-  itk::Index< 2 > index;
-
-  unsigned int lines = 0;
-  bool         found;
 
   // Find maxima
-  do
+  unsigned int numberOfMaximaFound = 0;
+  while(numberOfMaximaFound < this->m_NumberOfObjectsToFind)
     {
     minMaxCalculator->SetImage(postProcessImage);
     minMaxCalculator->ComputeMaximum();
-    InternalImageType::PixelType max = minMaxCalculator->GetMaximum();
 
-    found = false;
-    for ( it_input.GoToBegin(); !it_input.IsAtEnd(); ++it_input )
+    itk::Index<VModelDimension> indexOfMaximum = minMaxCalculator->GetIndexOfMaxmum();
+
+    // Create the object
+    ObjectPointer object = ObjectType::New();
+    CreateObject(indexOfMaximum, object);
+  
+    objects.push_back(object);
+
+    ClearRegion(indexOfMaximum);
+    
+    numberOfMaximaFound++;
+    }
+
+  return objects;
+}
+
+template< unsigned int VModelDimension >
+void
+HoughTransform< VModelDimension >
+::ClearRegion(itk::Index<VModelDimension> index)
+{
+  // Zero a sphere around the specified index
+  
+  // Is there not a better way to do this??
+  /*
+  for ( double angle = 0; angle <= 2 * itk::Math::pi; angle += itk::Math::pi / 1000 )
+    {
+    for ( double length = 0; length < m_DiscRadius; length += 1 )
       {
-      if ( it_input.Get() == max )
-        {
-        // Create the line
-        LineType::PointListType list; // insert two points per line
-
-        double radius = it_input.GetIndex()[0];
-        double teta   = ( ( it_input.GetIndex()[1] ) * 2 * itk::Math::pi / this->GetAngleResolution() ) - itk::Math::pi;
-        double Vx = radius * vcl_cos(teta);
-        double Vy = radius * vcl_sin(teta);
-        double norm = vcl_sqrt(Vx * Vx + Vy * Vy);
-        double VxNorm = Vx / norm;
-        double VyNorm = Vy / norm;
-
-        if ( ( teta <= 0 ) || ( teta >= itk::Math::pi / 2 ) )
-          {
-          if ( teta >= itk::Math::pi / 2 )
-            {
-            VyNorm = -VyNorm;
-            VxNorm = -VxNorm;
-            }
-
-          LinePointType p;
-          p.SetPosition(Vx, Vy);
-          list.push_back(p);
-          p.SetPosition(Vx - VyNorm * 5, Vy + VxNorm * 5);
-          list.push_back(p);
-          }
-        else // if teta>0
-          {
-          LinePointType p;
-          p.SetPosition(Vx, Vy);
-          list.push_back(p);
-          p.SetPosition(Vx - VyNorm * 5, Vy + VxNorm * 5);
-          list.push_back(p);
-          } // end if(teta>0)
-
-        // Create a Line Spatial Object
-        LinePointer Line = LineType::New();
-        Line->SetId(lines);
-        Line->SetPoints(list);
-        Line->ComputeBoundingBox();
-
-        m_LinesList.push_back(Line);
-
-        // Remove a black disc from the hough space domain
-        for ( double angle = 0; angle <= 2 * itk::Math::pi; angle += itk::Math::pi / 1000 )
-          {
-          for ( double length = 0; length < m_DiscRadius; length += 1 )
-            {
-            index[0] = (IndexValueType)( it_input.GetIndex()[0] + length * vcl_cos(angle) );
-            index[1] = (IndexValueType)( it_input.GetIndex()[1] + length * vcl_sin(angle) );
-            if ( postProcessImage->GetBufferedRegion().IsInside(index) )
-              {
-              postProcessImage->SetPixel(index, 0);
-              }
-            }
-          }
-        minMaxCalculator->SetImage(postProcessImage);
-        minMaxCalculator->ComputeMaximum();
-        max = minMaxCalculator->GetMaximum();
-
-        lines++;
-        found = true;
-        if ( lines == m_NumberOfLines ) { break; }
-        }
+      index[0] = (IndexValueType)( it_input.GetIndex()[0] + length * vcl_cos(angle) );
+      index[1] = (IndexValueType)( it_input.GetIndex()[1] + length * vcl_sin(angle) );
+      if ( postProcessImage->GetBufferedRegion().IsInside(index) )
+	{
+	postProcessImage->SetPixel(index, 0);
+	}
       }
     }
-  while ( ( lines < m_NumberOfLines ) && ( found ) );
-
-  m_OldModifiedTime = this->GetMTime();
-  m_OldNumberOfLines = m_LinesList.size();
-  return m_LinesList;
+  */
 }
 
 /** Print Self information */
@@ -390,12 +212,9 @@ HoughTransform< VModelDimension >
 {
   Superclass::PrintSelf(os, indent);
 
-  os << "Threshold: " << m_Threshold << std::endl;
-  os << "Angle Resolution: " << m_AngleResolution << std::endl;
-  os << "Number Of Lines: " << m_NumberOfLines << std::endl;
-  os << "Disc Radius: " << m_DiscRadius << std::endl;
+  os << "Number of objects to find: " << m_NumberOfObjectsToFind << std::endl;
   os << "Accumulator blur variance: " << m_Variance << std::endl;
-  os << "Simplify Accumulator" << m_SimplifyAccumulator << std::endl;
+
 }
 } // end namespace
 

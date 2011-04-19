@@ -32,10 +32,12 @@ namespace itk
  * \brief Performs the Hough Transform to find 2D straight lines
  *        in a 2D image.
  *
- * This filter derives from ImageToImageFilter
- * The input is an image, and all pixels above some threshold are those
- * to be extracted. The output is the image of the accumulator.
- * GetLines() returns a list of LinesSpatialObjects
+ * This filter derives from HoughTransform
+ * The input is a PointSet. If you have an image, you must threshold
+ * and extract points.
+ * 
+ * The output is the image of the accumulator array.
+ * GetObjects() returns a list of LineSpatialObjects.
  *
  * Lines are parameterized in the form: R = x*vcl_cos(Theta)+y*vcl_sin(Theta)
  * where R is the perpendicular distance from the origin and Theta
@@ -47,10 +49,6 @@ namespace itk
  *    -Dimension 1 represents the angle between the X axis
  *     and the normal to the line.
  *
- * The size of the array depends on the AngleAxisSize that could be set
- * (500 by default) for the angle axis. The distance axis depends on the
- * size of the diagonal of the input image.
- *
  * \ingroup ImageFeatureExtraction
  * \sa LineSpatialObject
  *
@@ -59,9 +57,8 @@ namespace itk
  * \wikiexample{Conversions/HoughTransform2DLinesImageFilter,HoughTransform2DLinesImageFilter}
  */
 
-template< typename TInputImageType>
 class ITK_EXPORT HoughTransform2DLinesImageFilter:
-  public HoughTransform<2>
+  public HoughTransform<float, 2, LineSpatialObject>
 {
 public:
 
@@ -79,45 +76,19 @@ public:
 
   /** Line typedef */
   typedef LineSpatialObject< 2 >     ObjectType;
-  /*
   typedef typename LineType::Pointer LinePointer;
-  typedef std::list< LinePointer >   LinesListType;
-  typedef LineType::LinePointType    LinePointType;
-  */
-
-  typedef typename LinesListType::size_type LinesListSizeType;
 
   /** Standard "Superclass" typedef. */
   typedef HoughTransform<2> Superclass;
 
-  /** Image index typedef */
-  typedef typename InputImageType::IndexType IndexType;
-
-  /** Image pixel value typedef */
-  typedef typename InputImageType::PixelType PixelType;
-
-  /** Typedef to describe the output image region type. */
-  typedef typename InputImageType::RegionType OutputImageRegionType;
-
   /** Run-time type information (and related methods). */
-  itkTypeMacro(HoughTransform2DLinesImageFilter, ImageToImageFilter);
+  itkTypeMacro(HoughTransform2DLinesImageFilter, HoughTransform);
 
   /** Method for creation through the object factory. */
   itkNewMacro(Self);
 
-  /** Method for evaluating the implicit function over the image. */
+  /** Compute the entire accumulator array. */
   void GenerateData();
-
-#ifdef ITK_USE_CONCEPT_CHECKING
-  /** Begin concept checking */
-  itkConceptMacro( IntConvertibleToOutputCheck,
-                   ( Concept::Convertible< int, TOutputPixelType > ) );
-  itkConceptMacro( InputGreaterThanFloatCheck,
-                   ( Concept::GreaterThanComparable< PixelType, float > ) );
-  itkConceptMacro( OutputPlusIntCheck,
-                   ( Concept::AdditiveOperators< TOutputPixelType, int > ) );
-  /** End concept checking */
-#endif
 
 protected:
 
@@ -126,6 +97,8 @@ protected:
 
   void PrintSelf(std::ostream & os, Indent indent) const;
 
+  virtual ObjectPointer CreateObject(itk::FixedArray<float, VModelDimension>);
+  
 private:
 
   HoughTransform2DLinesImageFilter(const Self &);

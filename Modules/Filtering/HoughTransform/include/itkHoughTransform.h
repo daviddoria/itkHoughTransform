@@ -86,6 +86,9 @@ public:
   /** Set the variance of the gaussian bluring for the accumulator. */
   itkSetMacro(Variance, float);
   itkGetConstMacro(Variance, float);
+  
+  /** Set the points in which to find objects. */
+  itkSetMacro(Points, itk::PointSet<>);
 
   /** Blur the accumulator array. */
   void BlurAccumulator();
@@ -94,13 +97,14 @@ public:
   virtual float SolveModel(itk::FixedArray<float, VModelDimension> parameters, unsigned int parameterToSolve) = 0;
 
   /** Object typedef */
-  typedef SpatialObject< 2 >    	ObjectType;
-  typedef typename ObjectType::Pointer 	ObjectPointer;
-  typedef std::list< ObjectPointer >   	ObjectListType;
+  typedef typename TSpatialObject::Pointer      ObjectPointer;
+  typedef std::list< ObjectPointer >            ObjectListType;
 
-  typedef typename ObjectListType::size_type ObjectListSizeType;
-
+  /** Get the to NumberOfObjectsToFind from the accumulator array. */
   virtual ObjectListType & GetObjects() = 0;
+  
+  /** Create an object from the list of parameters. */
+  virtual ObjectPointer CreateObject(itk::FixedArray<float, VModelDimension>) = 0;
 
 protected:
 
@@ -120,20 +124,32 @@ protected:
   /** HoughTransform must produce the entire output */
   void EnlargeOutputRequestedRegion(DataObject *output);
 
+  /** HoughTransform must produce the entire output */
+  void EnlargeOutputRequestedRegion(DataObject *output);
+  
+  /** Clear a region in the accumulator array. */
+  void ClearRegion(itk::Index<VModelDimension>);
+  
 private:
 
   HoughTransform(const Self &);
   void operator=(const Self &);
 
-  /** The array of the number of bins in each dimension of the Hough accumulator array */
+  /** The array of the number of bins in each dimension of the Hough accumulator array. */
   itk::FixedArray<unsigned int, VModelDimension> m_AccumulatorArrayDimensions;
 
-  /** The array of the min/max pairs of each dimension of the Hough accumulator array */
+  /** The array of the min/max pairs of each dimension of the Hough accumulator array. */
   itk::FixedArray<std::pair<float, float>, VModelDimension> m_AccumulatorArrayBounds;
 
   /** The variance of the Gaussian kernel used to smooth the accumulator */
   float              m_Variance;
+  
+  /** The number of objects to find. */
+  unsigned int       m_NumberOfObjectsToFind;
 
+  /** The input points in which to find objects. */
+  itk::PointSet<>      m_Points;
+  
 };
 } // end namespace itk
 

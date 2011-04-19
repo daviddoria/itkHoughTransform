@@ -40,7 +40,7 @@ namespace itk
  *
  * */
 
-template<unsigned int VModelDimension >
+template<typename TModelParameter, unsigned int VModelDimension, typename TSpatialObject >
 class ITK_EXPORT HoughTransform:
   public ImageSource< itk::Image< float, VModelDimension > >
 {
@@ -50,6 +50,7 @@ public:
   typedef HoughTransform Self;
 
   /** Output Image typedef */
+  // The output image is the accumulator array.
   typedef Image< float, VModelDimension >      OutputImageType;
   typedef typename OutputImageType::Pointer OutputImagePointer;
 
@@ -69,33 +70,20 @@ public:
   /** Typedef to describe the output image region type. */
   typedef typename OutputImageType::RegionType OutputImageRegionType;
 
-  /** Method for evaluating the implicit function over the image. */
+  /** Method for performing the Hough transform procedure. */
   void GenerateData();
 
-  /** Set the threshold above which the filter should consider
-      the point as a valid point */
-  itkSetMacro(Threshold, float);
-
-  /** Get the threshold value */
-  itkGetConstMacro(Threshold, float);
-
-  /** Set the number of bins in each dimension of the accumulator array */
+  /** Set the number of bins in each dimension of the accumulator array. */
   itkSetMacro(AccumulatorArrayDimensions, itk::FixedArray<unsigned int, VModelDimension>);
 
-  /** Get the number of bins in each dimension of the accumulator array */
+  /** Get the number of bins in each dimension of the accumulator array. */
   itkGetConstMacro(AccumulatorArrayDimensions, itk::FixedArray<unsigned int, VModelDimension>);
 
-  /** Simplify the accumulator */
-  void Simplify(void);
-
-  /** Get the Simplified accumulator */
-  itkGetObjectMacro(SimplifyAccumulator, OutputImageType);
-
-  /** Set/Get the number of objects to extract */
+  /** Set/Get the number of objects to extract. These correspond to the strongest peaks in the Hough accumulator. */
   itkSetMacro(NumberOfObjects, unsigned int);
   itkGetConstMacro(NumberOfObjects, unsigned int);
 
-  /** Set the variance of the gaussian bluring for the accumulator */
+  /** Set the variance of the gaussian bluring for the accumulator. */
   itkSetMacro(Variance, float);
   itkGetConstMacro(Variance, float);
 
@@ -114,16 +102,6 @@ public:
 
   virtual ObjectListType & GetObjects() = 0;
 
-#ifdef ITK_USE_CONCEPT_CHECKING
-  /** Begin concept checking */
-  itkConceptMacro( IntConvertibleToOutputCheck,
-                   ( Concept::Convertible< int, TOutputPixelType > ) );
-  itkConceptMacro( InputGreaterThanFloatCheck,
-                   ( Concept::GreaterThanComparable< PixelType, float > ) );
-  itkConceptMacro( OutputPlusIntCheck,
-                   ( Concept::AdditiveOperators< TOutputPixelType, int > ) );
-  /** End concept checking */
-#endif
 protected:
 
   HoughTransform();
@@ -153,24 +131,11 @@ private:
   /** The array of the min/max pairs of each dimension of the Hough accumulator array */
   itk::FixedArray<std::pair<float, float>, VModelDimension> m_AccumulatorArrayBounds;
 
-  /** A vector of all valid combinations of the paramters */
-  std::vector<itk::FixedArray<float, VModelDimension> > m_ParameterList;
-
-  /** The threshold above which the filter should consider
-      the point as a valid point*/
-  float              m_Threshold;
-
-  /** The simplified accumulator */
-  OutputImagePointer m_SimplifyAccumulator;
-
   /** The variance of the Gaussian kernel used to smooth the accumulator */
   float              m_Variance;
 
 };
 } // end namespace itk
 
-//#ifndef ITK_MANUAL_INSTANTIATION
-//#include "itkHoughTransform.txx"
-//#endif
 
 #endif
